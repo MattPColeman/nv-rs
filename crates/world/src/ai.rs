@@ -559,11 +559,26 @@ pub fn dialogue_step(
     })
 }
 
-/// The ring a wander spot is chosen in (`008ed420`): from 32 to 0.75 × the
-/// package's radius around the centre (`0040ebd0(32.0, r × 0.75)`). How the
-/// game's navmesh search picks within it isn't traced.
+/// The ring a wander spot is chosen in (`008ed420`): from the smaller of
+/// 32 (the f32 at `0101e340`) and 0.75 × the radius (the f64 at
+/// `0101de30`; `0040ebd0` is min(), stored at request +0xb0) out to the
+/// radius itself (request +0xb4, `006e5ee0`). So even a radius of 16 has
+/// a ring, 12 to 16. How the game's navmesh search (`006d34d0`) picks
+/// within it isn't traced; its fallback is [`wander_fallback`].
 pub fn wander_ring(radius: f32) -> (f32, f32) {
-    (32.0, 0.75 * radius)
+    (32.0f32.min(0.75 * radius), radius)
+}
+
+/// The spot `006d33c0` falls back to when its navmesh search finds none:
+/// a random angle (`004a4240`) and a random distance in the ring
+/// (`00476b70` → `00476b90`, uniform), offset from the centre. (The game
+/// then snaps its z to the navmesh where it can, `005547c0`.) `angle` and
+/// `along` are the two draws, in 0..1.
+pub fn wander_fallback(center: [f32; 3], radius: f32, angle: f32, along: f32) -> [f32; 3] {
+    let (near, far) = wander_ring(radius);
+    let a = angle * std::f32::consts::TAU;
+    let d = near + (far - near) * along;
+    [center[0] + d * a.cos(), center[1] + d * a.sin(), center[2]]
 }
 
 /// Below this radius a wander package's people just stand (`008ed420`:

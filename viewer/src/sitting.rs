@@ -1782,11 +1782,14 @@ fn nearest_free_chair(ctx: &mut Ctx, walker: &Walker) -> Option<FormId> {
     best.map(|b| b.1)
 }
 
-/// A walk to a wander spot (`008ed420`): a point of the navmesh between
-/// 32 and 0.75 × the radius from the middle (`world::ai::wander_ring`),
-/// at random (how the game's search picks within the ring isn't traced:
-/// here a random point of a random triangle reaching into it, tried a few
-/// times), walked to within 50. How far away it is, if there's a way.
+/// A walk to a wander spot (`008ed420`): a point of the navmesh in the
+/// ring around the middle (`world::ai::wander_ring`: the smaller of 32 and
+/// 0.75 × the radius, out to the radius), at random (how the game's search
+/// picks within the ring isn't traced: here a random point of a random
+/// triangle reaching into it, tried a few times), else the search's
+/// fallback (`006d33c0`, `world::ai::wander_fallback`: a random angle and
+/// distance in the ring), walked to within 50 (the f32 at `0101b268`).
+/// How far away it is, if there's a way.
 fn wander_to(ctx: &mut Ctx, walker: &mut Walker, center: [f32; 3], radius: f32) -> Option<f32> {
     let mesh = ctx.mesh;
     let (near, far) = world::ai::wander_ring(radius);
@@ -1803,12 +1806,9 @@ fn wander_to(ctx: &mut Ctx, walker: &mut Walker, center: [f32; 3], radius: f32) 
         .map(corners)
         .filter(|c| c.iter().any(|p| flat(*p) <= far) || holds(c, center))
         .collect();
-    if reaching.is_empty() {
-        return None;
-    }
     let mut dice = Dice(ctx.state.roll());
     let mut unit = || (dice.next() % 1_000_000) as f32 / 1_000_000.0;
-    for _ in 0..16 {
+    for _ in 0..if reaching.is_empty() { 0 } else { 16 } {
         let [a, b, c] = reaching[(unit() * reaching.len() as f32) as usize % reaching.len()];
         let (mut u, mut v) = (unit(), unit());
         if u + v > 1.0 {
@@ -1825,7 +1825,12 @@ fn wander_to(ctx: &mut Ctx, walker: &mut Walker, center: [f32; 3], radius: f32) 
             return Some(d);
         }
     }
-    None
+    // The search's fallback: a spot is always made (`006d33c0`).
+    let goal = world::ai::wander_fallback(center, radius, unit(), unit());
+    let path = crate::ai::path_for(mesh, walker, goal)?;
+    let d = crate::ai::distance(walker.position, goal);
+    walker.set_path(path, 50.0, true, ctx.moves);
+    Some(d)
 }
 
 /// The wander procedure's spot-to-spot loop (`008ed420`), standing: the
@@ -2044,13 +2049,14 @@ pub fn sandbox_frame(
     let sit = ctx.state.sitters.get(&me).map(|s| s.state);
     let seated = sit.is_some_and(|s| s != SitState::Normal);
     let walking = walker.on_path();
+    // Back to the area (`0092a2a4`–`0092a3bb`): the activity kept, so it
+    // carries on once they're back (or when its time is up).
     if !seated && !walking && sb.strayed(walker.position) {
+        let reach = sb.go_back();
         if let Some(path) = crate::ai::path_for(ctx.mesh, walker, sb.center) {
             println!("{me} goes back to their sandbox area");
-            walker.set_path(path, 0.0, true, ctx.moves);
+            walker.set_path(path, reach, true, ctx.moves);
         }
-        sb.choice = None;
-        life.activity = None;
         life.sandbox = Some(sb);
         return;
     }
