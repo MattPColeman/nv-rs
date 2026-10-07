@@ -565,6 +565,7 @@ pub fn dialogue_step(
 /// radius itself (request +0xb4, `006e5ee0`). So even a radius of 16 has
 /// a ring, 12 to 16. How the game's navmesh search (`006d34d0`) picks
 /// within it isn't traced; its fallback is [`wander_fallback`].
+/// Translated from 008ed420 (decompiled, FalloutNV.exe 1.4.0.525).
 pub fn wander_ring(radius: f32) -> (f32, f32) {
     (32.0f32.min(0.75 * radius), radius)
 }
@@ -573,7 +574,8 @@ pub fn wander_ring(radius: f32) -> (f32, f32) {
 /// a random angle (`004a4240`) and a random distance in the ring
 /// (`00476b70` → `00476b90`, uniform), offset from the centre. (The game
 /// then snaps its z to the navmesh where it can, `005547c0`.) `angle` and
-/// `along` are the two draws, in 0..1.
+/// `along` are the two draws, in 0..1. Translated from 006d33c0
+/// (decompiled, FalloutNV.exe 1.4.0.525).
 pub fn wander_fallback(center: [f32; 3], radius: f32, angle: f32, along: f32) -> [f32; 3] {
     let (near, far) = wander_ring(radius);
     let a = angle * std::f32::consts::TAU;

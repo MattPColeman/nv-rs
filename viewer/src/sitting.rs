@@ -1825,7 +1825,8 @@ fn wander_to(ctx: &mut Ctx, walker: &mut Walker, center: [f32; 3], radius: f32) 
             return Some(d);
         }
     }
-    // The search's fallback: a spot is always made (`006d33c0`).
+    // The search's fallback: a spot is always made. Translated from
+    // 006d33c0 (decompiled, FalloutNV.exe 1.4.0.525).
     let goal = world::ai::wander_fallback(center, radius, unit(), unit());
     let path = crate::ai::path_for(mesh, walker, goal)?;
     let d = crate::ai::distance(walker.position, goal);
@@ -2050,7 +2051,8 @@ pub fn sandbox_frame(
     let seated = sit.is_some_and(|s| s != SitState::Normal);
     let walking = walker.on_path();
     // Back to the area (`0092a2a4`–`0092a3bb`): the activity kept, so it
-    // carries on once they're back (or when its time is up).
+    // carries on once they're back (or when its time is up). Translated
+    // from 00929fc0 (decompiled, FalloutNV.exe 1.4.0.525).
     if !seated && !walking && sb.strayed(walker.position) {
         let reach = sb.go_back();
         if let Some(path) = crate::ai::path_for(ctx.mesh, walker, sb.center) {

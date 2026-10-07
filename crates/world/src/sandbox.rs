@@ -886,6 +886,7 @@ impl Sandbox {
     /// something else" (`009f43c0`) doesn't choose again at once and drop
     /// the walk. The walk's goal radius: the larger of the radius and the
     /// setting stored at `0119e4bc` (25.0; `006e25d0`, max `00404010`).
+    /// Translated from 00929fc0 (decompiled, FalloutNV.exe 1.4.0.525).
     pub fn go_back(&mut self) -> f32 {
         self.phase = Phase::GettingUp;
         self.radius.max(GO_BACK_REACH)
