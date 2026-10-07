@@ -371,7 +371,7 @@ after stage 70's `MoveTo`. Evidence and gaps: [PACKAGES.md](PACKAGES.md).
 
 ## Fix: sandbox wander in a small area
 
-`claude/sandbox-go-back` (2026-10-07): wander spots now come from
+2026-10-07: wander spots now come from
 min(32, 0.75 r) to r (`008ed420`), with the spot search's fallback
 (`006d33c0`), and straying keeps the sandbox activity (`00929fc0`).
 Goodsprings' 00109A39 (radius 16) had no spot, turned back and chose
