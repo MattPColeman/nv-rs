@@ -54,6 +54,7 @@ compared** (nothing here has been checked against the running game).
 | Location load: kind 1 radius dropped, kinds 2/3 form dropped | `0067f060` | implemented, tested (changes outdoor "in a cell" wander radius to 0) |
 | Type data: `PKW3` 24 bytes (always hit, no damage, crouch, hold fire, volley, repeat, burst u16, volley min/max u16, wait min/max f32, weapon), `PTD2` (use weapon only), `PKPT` (repeatable, start at linked ref), `PKE2` escort radius i32, `PKFD` follow radius f32, `PLD2` filed by type (dialogue, eat search, escort search, ambush location, follow start, use item at, use weapon location); `PKAM`/`PKED` have no loader case | `00673a40`, `00671e10`, `0067cb70`, `0067c450`, `0067bc60`, `0067c040`; layouts `TESUseWeaponPackageData`, `TESPatrolPackageData`, `TESEscortPackageData`, `TESFollowPackageData`, `TESAmbushPackageData` (Xbox PDB) | implemented, tested (`world::ai::data`) |
 | Actions: begin (+0x598 `00903a80`) from `AddScriptPackage` (`005cc4f0`) and evaluation (`0090a1a0`, `00907ab0`); end (+0x5a0 `00903d10`) when advancing to DONE (`0091ecf0`, once via +0x5a8) and on give-way (`00907ab0`); change (+0x59c `00903bf0`) from `AddScriptPackage` and `ResetAI`. Each: script on the actor (`005ac1e0`), idle (+0x44), topic via greeting (+0x2a4) | as listed | implemented, tested (`world::ai::actions`, viewer `rethink`/travel arrival/flee end, `scripts.rs` dispatch) |
+| Sandbox walk back (`00929fc0`, `0092a2a4`–`0092a3bb`): the procedure goes to phase 1 and keeps the activity, its duration and target; the walk's goal radius is max(r, 25.0) (setting at `0119e4b8`, name unresolved). Wander spots (`008ed420`): min(32, 0.75 r) to r from the middle (`0040ebd0` min); the spot search (`006d33c0`) falls back to a random angle and distance in that ring, so a spot is always made | `00929fc0`, `008ed420`, `006d33c0` | implemented, tested (`world::sandbox::Sandbox::go_back`, `world::ai::wander_ring`, `wander_fallback`); fixes Goodsprings' 00109A39 (radius 16) turning back every other frame |
 | `AddScriptPackage` installs at once (`PutCreatedPackage` (Xbox PDB), actor +0x2f4); the AI taking the package up does not begin it again | `005cc4f0` | implemented (`GameState::package_begun`), tested |
 
 `PKDT` general flag names used in comments (0x2 "must reach location",
@@ -73,6 +74,14 @@ code only tests the bits.
   the saloon) with the existing travel code.
 - Fleeing from a target without a place; object/type searches for targets
   and locations (kinds 1, 2 / 4, 5).
+- Sandbox straying, as traced but not done: standing, strayed is "not
+  inside the area" with no +150 slack (`009f56b0`; with no centre
+  reference the package's own location test, not traced); +150 only
+  while moving with a centre reference, or for the target's distance from
+  it, which fails the target and chooses again (`009f4680`). nv-rs still
+  tests radius + 150 while standing.
+- The wander spot's navmesh search itself (`006d34d0`) and its exterior
+  second search from the centre.
 - A begin action without an idle stopping the current idle; the end
   action's flag +0x590; whether re-picking a package that reached DONE
   begins it again (`0090a1a0`).

@@ -352,6 +352,18 @@ fn wander_packages_stand_wander_and_come_back_by_their_radius() {
     assert_eq!(ai::wander_step(400.0, false, true, 651.0), Back);
     // Around themselves: no radius test.
     assert_eq!(ai::wander_step(30.0, true, false, 0.0), Wander);
-    // The spots: 32 to 0.75 × the radius.
-    assert_eq!(ai::wander_ring(400.0), (32.0, 300.0));
+    // The spots: the smaller of 32 and 0.75 × the radius, out to the
+    // radius.
+    assert_eq!(ai::wander_ring(400.0), (32.0, 400.0));
+    // Goodsprings' 00109A39 (DefaultSandboxEditorLocation16): radius 16
+    // still has a ring (it had none, and they turned back every other
+    // frame).
+    assert_eq!(ai::wander_ring(16.0), (12.0, 16.0));
+    // The fallback spot is in the ring.
+    for (angle, along) in [(0.0, 0.0), (0.3, 0.5), (0.9, 1.0)] {
+        let p = ai::wander_fallback([100.0, 200.0, 5.0], 16.0, angle, along);
+        let d = (p[0] - 100.0).hypot(p[1] - 200.0);
+        assert!((12.0 - 1e-3..=16.0 + 1e-3).contains(&d), "{d}");
+        assert_eq!(p[2], 5.0);
+    }
 }

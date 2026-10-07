@@ -369,6 +369,16 @@ stand; CF/AM guard packages send settlers back to their editor location
 after stage 70's `MoveTo`. Evidence and gaps: [PACKAGES.md](PACKAGES.md).
 **Next action:** compare both `bTrudyHelp` branches in the original game.
 
+## Fix: sandbox wander in a small area
+
+2026-10-07: wander spots now come from
+min(32, 0.75 r) to r (`008ed420`), with the spot search's fallback
+(`006d33c0`), and straying keeps the sandbox activity (`00929fc0`).
+Goodsprings' 00109A39 (radius 16) had no spot, turned back and chose
+again every other frame, slowing Goodsprings down. Unit-tested; see
+[PACKAGES.md](PACKAGES.md). **Next action:** trace the standing stray
+test without a centre reference (the package's location test).
+
 ## M2 blocker batch: NPC combat
 
 `claude/m2-npc-combat` (2026-10-06): people now choose their weapon the

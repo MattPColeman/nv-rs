@@ -879,7 +879,24 @@ impl Sandbox {
     pub fn strayed(&self, at: [f32; 3]) -> bool {
         distance(at, self.center) > self.radius + 150.0
     }
+
+    /// Sets off back to the area (`00929fc0`, `0092a2a4`–`0092a3bb`): the
+    /// procedure goes back to phase 1 (getting ready, SD+0x04) and the
+    /// activity, its duration and its target are kept, so "time for
+    /// something else" (`009f43c0`) doesn't choose again at once and drop
+    /// the walk. The walk's goal radius: the larger of the radius and the
+    /// setting stored at `0119e4bc` (25.0; `006e25d0`, max `00404010`).
+    /// Translated from 00929fc0 (decompiled, FalloutNV.exe 1.4.0.525).
+    pub fn go_back(&mut self) -> f32 {
+        self.phase = Phase::GettingUp;
+        self.radius.max(GO_BACK_REACH)
+    }
 }
+
+/// The least goal radius of the walk back to a sandbox's area: the default
+/// of the setting at `0119e4b8` (value at `0119e4bc`), whose name isn't
+/// resolved.
+pub const GO_BACK_REACH: f32 = 25.0;
 
 /// A random number in 0..1 from the dice.
 fn unit(roll: &mut dyn FnMut() -> u64) -> f32 {
@@ -1273,5 +1290,32 @@ mod tests {
         assert!(!b.time_for_something_else((2, 2.0)));
         assert!(b.time_for_something_else((2, 9.0)));
         assert!(b.strayed([700.0, 0.0, 0.0]) && !b.strayed([600.0, 0.0, 0.0]));
+    }
+
+    /// Goodsprings' 00109A39 turned back to its area and chose a wander
+    /// every other frame: going back cleared the choice, so the next frame
+    /// chose again and dropped the walk. Going back keeps the activity.
+    #[test]
+    fn going_back_keeps_the_activity() {
+        let s = settings();
+        let me = FormId(1);
+        let mut b = Sandbox::new(FormId(2), [0.0; 3], 16, 0, 50, &s);
+        b.scan(me, &[], false);
+        let mut roll = || 0u64;
+        let c = b
+            .choose(me, &s, 0.0, (1, 12.0), &mut roll, None, &|_| None)
+            .unwrap();
+        assert_eq!(c.activity, activities::WANDER);
+        b.phase = Phase::Doing;
+        assert!(!b.time_for_something_else((1, 12.0)));
+        assert!(b.strayed([200.0, 0.0, 0.0]));
+        // The walk ends within 25 of the centre (the radius is smaller).
+        assert_eq!(b.go_back(), GO_BACK_REACH);
+        assert_eq!(b.phase, Phase::GettingUp);
+        assert_eq!(b.choice, Some(c));
+        assert!(!b.time_for_something_else((1, 12.0)));
+        // A larger area: its radius.
+        let mut big = Sandbox::new(FormId(2), [0.0; 3], 512, 0, 50, &s);
+        assert_eq!(big.go_back(), 512.0);
     }
 }
